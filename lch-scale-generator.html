@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LCH Scale Generator — Design System Tokens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24; --surface3: #222230;
+    --border: #2a2a3a; --border2: #3a3a50;
+    --text: #e8e8f0; --text2: #9090a8; --text3: #8080a8;
+    --accent: #7c6af7; --accent2: #a599ff; --green: #4ade80;
+    --radius: 8px; --radius2: 12px;
+  }
+  html { font-size: 14px; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.35;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+  header { padding:18px 26px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; position:relative; z-index:1; }
+  .logo-mark { width:32px; height:32px; background:linear-gradient(135deg,var(--accent),#c084fc); border-radius:7px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; font-size:14px; color:#fff; flex-shrink:0; }
+  .header-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; letter-spacing:-0.02em; }
+  .header-sub { font-size:11px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:1px; }
+  .layout { display:grid; grid-template-columns:390px 1fr; min-height:calc(100vh - 69px); position:relative; z-index:1; }
+
+  .sidebar { border-right:1px solid var(--border); padding:18px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; background:var(--surface); }
+  .section-label { font-family:'DM Mono',monospace; font-size:11px; font-weight:500; letter-spacing:0.10em; text-transform:uppercase; color:var(--text3); margin-bottom:7px; }
+  .color-input-group { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius2); padding:12px; display:flex; flex-direction:column; gap:9px; }
+  .color-row { display:flex; align-items:center; gap:9px; }
+  .color-swatch-input { width:36px; height:36px; border:2px solid var(--border2); border-radius:6px; cursor:pointer; padding:2px; background:var(--surface3); flex-shrink:0; appearance:none; -webkit-appearance:none; overflow:hidden; }
+  .color-swatch-input::-webkit-color-swatch-wrapper { padding:0; border-radius:3px; }
+  .color-swatch-input::-webkit-color-swatch { border:none; border-radius:3px; }
+  .color-info { flex:1; min-width:0; }
+  .color-label-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; }
+  .hex-input { width:100%; background:var(--surface3); border:1px solid var(--border2); border-radius:5px; padding:5px 8px; font-family:'DM Mono',monospace; font-size:12px; color:var(--text); outline:none; transition:border-color .15s; }
+  .hex-input:focus { border-color:var(--accent); }
+  .lch-display { background:var(--surface3); border:1px solid var(--border); border-radius:5px; padding:6px 8px; display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+  .lch-val { text-align:center; }
+  .lch-val .key { font-family:'DM Mono',monospace; font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; }
+  .lch-val .val { font-family:'DM Mono',monospace; font-size:11px; font-weight:500; color:var(--accent2); }
+  .anchor-badge { display:inline-flex; align-items:center; gap:3px; background:rgba(124,106,247,.15); border:1px solid rgba(124,106,247,.3); border-radius:20px; padding:2px 8px; font-size:11px; font-family:'DM Mono',monospace; color:var(--accent2); }
+  .anchor-dot { width:5px; height:5px; background:var(--accent2); border-radius:50%; }
+  .control-group { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius2); padding:13px; }
+  .slider-row { display:flex; flex-direction:column; gap:5px; }
+  .slider-header { display:flex; justify-content:space-between; align-items:center; }
+  .slider-label { font-size:11px; font-weight:500; color:var(--text2); }
+  .slider-value { font-family:'DM Mono',monospace; font-size:11px; color:var(--accent2); background:rgba(124,106,247,.1); padding:1px 6px; border-radius:3px; }
+  input[type=range] { width:100%; appearance:none; -webkit-appearance:none; height:3px; background:var(--surface3); border-radius:2px; outline:none; cursor:pointer; }
+  input[type=range]::-webkit-slider-thumb { appearance:none; width:12px; height:12px; background:var(--accent); border-radius:50%; border:2px solid var(--bg); box-shadow:0 0 0 1px var(--accent); }
+  .toggle-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; }
+  .toggle-label { font-size:11px; font-weight:500; color:var(--text2); }
+  .toggle { width:32px; height:17px; background:var(--surface3); border-radius:8px; border:1px solid var(--border2); cursor:pointer; position:relative; transition:background .2s; flex-shrink:0; }
+  .toggle.on { background:var(--accent); border-color:var(--accent); }
+  .toggle::after { content:''; position:absolute; top:2px; left:2px; width:11px; height:11px; background:white; border-radius:50%; transition:transform .2s; }
+  .toggle.on::after { transform:translateX(15px); }
+  .btn { width:100%; padding:9px 12px; border-radius:var(--radius); border:none; font-family:'Syne',sans-serif; font-weight:700; font-size:12px; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .btn-primary { background:var(--accent); color:white; }
+  .btn-primary:hover { background:#6b5ae0; transform:translateY(-1px); }
+  .btn-ghost { background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--surface3); color:var(--text); }
+  select { width:100%; padding:6px 8px; background:var(--surface3); border:1px solid var(--border2); border-radius:5px; color:var(--text); font-family:'DM Mono',monospace; font-size:11px; outline:none; cursor:pointer; }
+  select:focus { border-color:var(--accent); }
+  .seg { display:flex; border-radius:6px; overflow:hidden; border:1px solid var(--border); }
+  .seg-btn { flex:1; padding:5px 4px; font-size:11px; font-family:'DM Mono',monospace; cursor:pointer; border:none; background:var(--surface3); color:var(--text3); transition:all .15s; text-align:center; }
+  .seg-btn.active { background:rgba(124,106,247,.2); color:var(--accent2); }
+  .separator { height:1px; background:var(--border); }
+  .del-btn { background:none; border:none; color:var(--text3); cursor:pointer; font-size:15px; line-height:1; padding:2px 5px; transition:color .1s; flex-shrink:0; }
+  .del-btn:hover { color:#f87171; }
+
+  .main { display:flex; flex-direction:column; overflow:hidden; }
+  .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 18px; background:var(--surface); flex-shrink:0; overflow-x:auto; }
+  .tab { padding:12px 14px; font-size:11px; font-weight:500; font-family:'DM Mono',monospace; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; letter-spacing:.02em; user-select:none; white-space:nowrap; }
+  .tab:hover { color:var(--text2); }
+  .tab.active { color:var(--accent2); border-bottom-color:var(--accent); }
+  .panel { flex:1; padding:18px; overflow-y:auto; display:none; }
+  .panel.active { display:block; }
+
+  /* SCALES */
+  .palette-block { margin-bottom:24px; }
+  .palette-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+  .palette-title { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; display:flex; align-items:center; gap:7px; }
+  .pdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sys-label { font-family:'DM Mono',monospace; font-size:10px; color:var(--text3); letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; margin-top:10px; }
+  .scale-strip { display:flex; border-radius:6px; overflow:hidden; border:1px solid var(--border); height:54px; margin-bottom:5px; }
+  .sc { position:relative; flex:1; cursor:pointer; transition:flex .12s; display:flex; align-items:flex-end; justify-content:center; padding-bottom:3px; }
+  .sc:hover { flex:1.8; z-index:2; }
+  .sc.anchor { outline:2px solid rgba(255,255,255,.7); outline-offset:-2px; z-index:1; }
+  .sc .sn { font-family:'DM Mono',monospace; font-size:9px; opacity:0; transition:opacity .1s; pointer-events:none; font-weight:500; }
+  .sc:hover .sn { opacity:1; }
+  .scale-labels { display:flex; }
+  .sl { flex:1; text-align:center; font-family:'DM Mono',monospace; font-size:10px; color:var(--text3); padding:3px 0; }
+  .sl.ia { color:var(--accent2); }
+  .chips-row { display:flex; gap:8px; margin-top:7px; flex-wrap:wrap; }
+  .chip { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:6px 9px; flex:1; min-width:70px; }
+  .chip .cl { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.05em; }
+  .chip .cv { font-size:13px; font-family:'Syne',sans-serif; font-weight:700; margin-top:1px; }
+
+  /* WCAG */
+  .wcag-table { width:100%; border-collapse:collapse; font-family:'DM Mono',monospace; font-size:11px; }
+  .wcag-table th { text-align:left; padding:6px 8px; color:var(--text3); font-size:11px; letter-spacing:.04em; border-bottom:1px solid var(--border); font-weight:500; }
+  .wcag-table td { padding:4px 7px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .wcag-table tr:hover td { background:var(--surface2); }
+  .swatch-sm { width:18px; height:18px; border-radius:4px; display:inline-block; vertical-align:middle; cursor:pointer; border:1px solid rgba(255,255,255,.08); transition:transform .1s; }
+  .swatch-sm:hover { transform:scale(1.25); }
+  .wb { display:inline-flex; align-items:center; padding:2px 6px; border-radius:3px; font-size:10px; font-family:'DM Mono',monospace; font-weight:500; }
+  .waaa { background:rgba(74,222,128,.15); color:#4ade80; }
+  .waa { background:rgba(251,191,36,.15); color:#fbbf24; }
+  .waal { background:rgba(251,191,36,.08); color:#d4a017; }
+  .wfail { background:rgba(239,68,68,.12); color:#f87171; }
+  .wbig { display:inline-flex; align-items:center; padding:2px 6px; border-radius:4px; font-size:10px; font-family:'DM Mono',monospace; font-weight:500; }
+
+  /* SEMANTIC */
+  .sem-head { display:grid; grid-template-columns:160px 1fr 1fr 32px; gap:6px; padding:0 2px 4px; }
+  .sem-row { display:grid; grid-template-columns:160px 1fr 1fr 32px; gap:6px; align-items:center; padding:3px 0; }
+  .sem-in { background:var(--surface3); border:1px solid var(--border2); border-radius:5px; padding:4px 7px; font-family:'DM Mono',monospace; font-size:10px; color:var(--text); outline:none; width:100%; }
+  .sem-in:focus { border-color:var(--accent); }
+  .sem-sel { background:var(--surface3); border:1px solid var(--border2); border-radius:5px; padding:3px 5px; font-family:'DM Mono',monospace; font-size:10px; color:var(--text); outline:none; width:100%; }
+  .sem-sel:focus { border-color:var(--accent); }
+  .add-btn { background:rgba(124,106,247,.12); border:1px dashed rgba(124,106,247,.35); border-radius:6px; padding:7px; font-size:10px; font-family:'DM Mono',monospace; color:var(--accent2); cursor:pointer; text-align:center; transition:all .15s; margin-top:6px; }
+  .add-btn:hover { background:rgba(124,106,247,.22); }
+  .grp-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text3); padding:8px 0 6px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+
+  /* PREVIEW */
+  .preview-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+  .tdemo { border-radius:var(--radius2); overflow:hidden; border:1px solid var(--border); }
+  .tdemo-h { padding:8px 12px; font-family:'DM Mono',monospace; font-size:10px; color:var(--text3); border-bottom:1px solid var(--border); letter-spacing:.05em; text-transform:uppercase; background:var(--surface); }
+
+  /* TOKENS */
+  .tokens-toolbar { display:flex; gap:7px; margin-bottom:12px; align-items:center; flex-wrap:wrap; }
+  .fmt-btn { padding:4px 11px; border-radius:5px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--text2); transition:all .15s; }
+  .fmt-btn.active { background:rgba(124,106,247,.15); border-color:var(--accent); color:var(--accent2); }
+  .copy-btn { margin-left:auto; padding:4px 11px; border-radius:5px; font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; border:1px solid var(--border); background:var(--surface3); color:var(--text2); transition:all .15s; display:flex; align-items:center; gap:5px; }
+  .copy-btn:hover { color:var(--text); }
+  .token-code { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:14px; font-family:'DM Mono',monospace; font-size:12px; line-height:1.85; color:var(--text2); white-space:pre; overflow-x:auto; max-height:560px; overflow-y:auto; }
+
+  .tooltip { position:fixed; background:var(--surface2); border:1px solid var(--border2); border-radius:var(--radius); padding:9px 11px; font-family:'DM Mono',monospace; font-size:10px; pointer-events:none; z-index:200; min-width:160px; display:none; box-shadow:0 8px 28px rgba(0,0,0,.6); }
+  .tt-hex { font-size:13px; font-weight:500; color:var(--text); margin-bottom:2px; }
+  .tt-lch { color:var(--text3); font-size:11px; }
+  .tt-tok { color:var(--accent2); font-size:11px; margin-top:4px; }
+  .tt-hint { color:var(--text3); font-size:10px; margin-top:3px; opacity:.8; }
+  .toast { position:fixed; bottom:18px; right:18px; background:var(--surface2); border:1px solid var(--border2); border-radius:7px; padding:8px 13px; font-family:'DM Mono',monospace; font-size:11px; color:var(--green); z-index:999; transform:translateY(50px); opacity:0; transition:all .2s; pointer-events:none; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">Lch</div>
+  <div>
+    <div class="header-title">LCH Scale Generator</div>
+    <div class="header-sub">brand-anchored · M3 tonal 0–100 · semantic tokens · WCAG</div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Colores de marca</div>
+      <div class="color-input-group" id="color-inputs"></div>
+    </div>
+    <div class="separator"></div>
+    <div>
+      <div class="section-label">Configuración</div>
+      <div class="control-group" style="display:flex;flex-direction:column;gap:11px;">
+        <div class="slider-row">
+          <div class="slider-header"><span class="slider-label">Pasos custom</span><span class="slider-value" id="steps-val">13</span></div>
+          <input type="range" id="steps-slider" min="9" max="15" value="13" step="2">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span class="slider-label">Chroma scaling</span><span class="slider-value" id="chroma-val">0.85</span></div>
+          <input type="range" id="chroma-slider" min="0.4" max="1.2" value="0.85" step="0.05">
+        </div>
+        <div>
+          <div class="slider-label" style="margin-bottom:4px;">Chroma extremos</div>
+          <div class="seg" id="chroma-seg">
+            <button class="seg-btn active" onclick="setSeg('chroma-seg',this,'taper');chromaMode='taper';generateAll()">Taper</button>
+            <button class="seg-btn" onclick="setSeg('chroma-seg',this,'flat');chromaMode='flat';generateAll()">Flat</button>
+            <button class="seg-btn" onclick="setSeg('chroma-seg',this,'boost');chromaMode='boost';generateAll()">Boost</button>
+          </div>
+        </div>
+        <div class="separator"></div>
+        <div>
+          <div class="slider-label" style="margin-bottom:4px;">Escala visible</div>
+          <div class="seg" id="scale-seg">
+            <button class="seg-btn active" onclick="setSeg('scale-seg',this);scaleSystem='both';generateAll()">Ambas</button>
+            <button class="seg-btn" onclick="setSeg('scale-seg',this);scaleSystem='custom';generateAll()">Custom</button>
+            <button class="seg-btn" onclick="setSeg('scale-seg',this);scaleSystem='m3';generateAll()">M3 0-100</button>
+          </div>
+        </div>
+        <div>
+          <div class="slider-label" style="margin-bottom:4px;">Nombres custom</div>
+          <select id="naming-select"><option value="numeric">50–950 (Material)</option><option value="steps">step-1…N</option><option value="t">t0…tN</option></select>
+        </div>
+        <div>
+          <div class="slider-label" style="margin-bottom:4px;">Formato valor</div>
+          <select id="format-select"><option value="lch">lch()</option><option value="hex">HEX</option><option value="oklch">oklch()</option><option value="hsl">hsl()</option><option value="native">Nativo (por paleta)</option></select>
+        </div>
+        <div class="toggle-row"><span class="toggle-label">Tokens dark mode</span><div class="toggle on" id="dark-toggle" onclick="this.classList.toggle('on');generateAll()"></div></div>
+        <div class="toggle-row"><span class="toggle-label">WCAG en escala</span><div class="toggle on" id="wcag-toggle" onclick="this.classList.toggle('on');renderScales()"></div></div>
+      </div>
+    </div>
+    <div class="separator"></div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <button class="btn btn-primary" onclick="generateAll()">⟳ Regenerar</button>
+      <button class="btn btn-ghost" onclick="addColorSlot()">+ Agregar color</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('scales',this)">Escalas</div>
+      <div class="tab" onclick="switchTab('wcag',this)">WCAG / Contraste</div>
+      <div class="tab" onclick="switchTab('semantic',this)">Tokens Semánticos</div>
+      <div class="tab" onclick="switchTab('preview',this)">Preview UI</div>
+      <div class="tab" onclick="switchTab('tokens',this)">CSS Tokens</div>
+      <div class="tab" onclick="switchTab('json',this)">JSON / DTF</div>
+    </div>
+    <div class="panel active" id="tab-scales"><div id="scales-container"></div></div>
+    <div class="panel" id="tab-wcag"><div id="wcag-container"></div></div>
+    <div class="panel" id="tab-semantic"><div id="semantic-container"></div></div>
+    <div class="panel" id="tab-preview"><div id="preview-container"></div></div>
+    <div class="panel" id="tab-tokens">
+      <div class="tokens-toolbar">
+        <button class="fmt-btn active" onclick="setTF('css',this)">CSS Vars</button>
+        <button class="fmt-btn" onclick="setTF('scss',this)">SCSS</button>
+        <button class="fmt-btn" onclick="setTF('less',this)">LESS</button>
+        <button class="copy-btn" onclick="copyEl('token-output')">⎘ Copiar</button>
+      </div>
+      <div class="token-code" id="token-output"></div>
+    </div>
+    <div class="panel" id="tab-json">
+      <div class="tokens-toolbar">
+        <button class="fmt-btn active" onclick="setJF('dtf',this)">Design Token Format</button>
+        <button class="fmt-btn" onclick="setJF('style-dict',this)">Style Dictionary</button>
+        <button class="copy-btn" onclick="copyEl('json-output')">⎘ Copiar</button>
+      </div>
+      <div class="token-code" id="json-output"></div>
+    </div>
+  </main>
+</div>
+
+<div class="tooltip" id="tt">
+  <div class="tt-hex" id="tt-hex"></div>
+  <div class="tt-lch" id="tt-lch"></div>
+  <div class="tt-tok" id="tt-tok"></div>
+  <div class="tt-hint">clic para copiar HEX</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Color Science — shared primitives ─────────────────
+function h2r(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[n>>16&255,n>>8&255,n&255];}
+function r2h(r,g,b){return'#'+[r,g,b].map(v=>{const x=Math.round(Math.max(0,Math.min(255,v))).toString(16);return x.length<2?'0'+x:x;}).join('');}
+function lin(c){c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);}
+function delin(c){return c<=.0031308?c*12.92:1.055*Math.pow(c,1/2.4)-.055;}
+function r2x(r,g,b){r=lin(r);g=lin(g);b=lin(b);return[r*.4124564+g*.3575761+b*.1804375,r*.2126729+g*.7151522+b*.0721750,r*.0193339+g*.1191920+b*.9503041];}
+function x2r(x,y,z){const r=x*3.2404542+y*-1.5371385+z*-.4985314,g=x*-.9692660+y*1.8760108+z*.0415560,b=x*.0556434+y*-.2040259+z*1.0572252;return[Math.round(delin(r)*255),Math.round(delin(g)*255),Math.round(delin(b)*255)];}
+const D65=[.95047,1,1.08883];
+// ── CIELab / LCH ──────────────────────────────────────
+function f(t){return t>.008856?Math.cbrt(t):7.787*t+16/116;}
+function fi(t){return t>.206897?t*t*t:(t-16/116)/7.787;}
+function x2lab(x,y,z){x/=D65[0];y/=D65[1];z/=D65[2];return[116*f(y)-16,500*(f(x)-f(y)),200*(f(y)-f(z))];}
+function lab2x(L,a,b){const fy=(L+16)/116;return[fi(a/500+fy)*D65[0],fi(fy)*D65[1],fi(fy-b/200)*D65[2]];}
+function polar2ab(C,H){const hr=H*Math.PI/180;return[C*Math.cos(hr),C*Math.sin(hr)];}
+function ab2polar(a,b){const C=Math.sqrt(a*a+b*b);let H=Math.atan2(b,a)*180/Math.PI;if(H<0)H+=360;return[C,H];}
+function h2lab(hex){const[r,g,b]=h2r(hex);return x2lab(...r2x(r,g,b));}
+function h2lch(hex){const[L,a,b]=h2lab(hex);const[C,H]=ab2polar(a,b);return[L,C,H];}
+function lch2hc_gamut(L,C,H){
+  L=Math.max(0,Math.min(100,L));C=Math.max(0,C);
+  let lo=0,hi=C,hex='';
+  for(let i=0;i<22;i++){const m=(lo+hi)/2;const[a,b]=polar2ab(m,H);const[x,y,z]=lab2x(L,a,b);const[r,g,bv]=x2r(x,y,z);if(r>=0&&r<=255&&g>=0&&g<=255&&bv>=0&&bv<=255){lo=m;hex=r2h(r,g,bv);}else hi=m;}
+  if(!hex){const[a,b]=polar2ab(0,H);const[x,y,z]=lab2x(L,a,b);hex=r2h(...x2r(x,y,z));}
+  return hex;
+}
+// ── OKLab / OKLCH ─────────────────────────────────────
+// sRGB → linear → OKLab (Björn Ottosson 2020)
+function r2oklab(r,g,b){
+  const lr=lin(r),lg=lin(g),lb=lin(b);
+  const l=Math.cbrt(.4122214708*lr+.5363325363*lg+.0514459929*lb);
+  const m=Math.cbrt(.2119034982*lr+.6806995451*lg+.1073969566*lb);
+  const s=Math.cbrt(.0883024619*lr+.2817188376*lg+.6299787005*lb);
+  return[.2104542553*l+.7936177850*m-.0040720468*s,
+         1.9779984951*l-2.4285922050*m+.4505937099*s,
+         .0259040371*l+.7827717662*m-.8086757660*s];
+}
+// OKLab → linear sRGB
+function oklab2r(L,a,b){
+  const l=(L+.3963377774*a+.2158037573*b)**3;
+  const m=(L-.1055613458*a-.0638541728*b)**3;
+  const s=(L-.0894841775*a-1.2914855480*b)**3;
+  const r= 4.0767416621*l-3.3077115913*m+.2309699292*s;
+  const g=-1.2684380046*l+2.6097574011*m-.3413193965*s;
+  const bv=-.0041960863*l-.7034186147*m+1.7076147010*s;
+  return[Math.round(delin(r)*255),Math.round(delin(g)*255),Math.round(delin(bv)*255)];
+}
+function h2oklab(hex){const[r,g,b]=h2r(hex);return r2oklab(r,g,b);}
+function h2oklch(hex){const[L,a,b]=h2oklab(hex);const[C,H]=ab2polar(a,b);return[L,C,H];}
+// Gamut-clip for OKLab: binary search on Chroma in OKLCH space
+function oklch2hc_gamut(L,C,H){
+  L=Math.max(0,Math.min(1,L));C=Math.max(0,C);
+  let lo=0,hi=C,hex='';
+  for(let i=0;i<22;i++){
+    const m=(lo+hi)/2;
+    const[a,b]=polar2ab(m,H);
+    const[r,g,bv]=oklab2r(L,a,b);
+    if(r>=0&&r<=255&&g>=0&&g<=255&&bv>=0&&bv<=255){lo=m;hex=r2h(r,g,bv);}else hi=m;
+  }
+  if(!hex){const[r,g,bv]=oklab2r(L,0,0);hex=r2h(r,g,bv);}
+  return hex;
+}
+// ── Space-agnostic helpers ─────────────────────────────
+// cs = colorspace id: 'lch'|'oklch'|'cielab'|'oklab'
+// Returns [L_norm, C_or_a, H_or_b] — "polar" for lch/oklch, "cartesian" for lab/oklab
+function hex2cs(hex,cs){
+  if(cs==='lch')    return h2lch(hex);
+  if(cs==='oklch')  return h2oklch(hex);
+  if(cs==='cielab') return h2lab(hex);      // [L,a,b]  L∈[0,100]
+  if(cs==='oklab')  return h2oklab(hex);    // [L,a,b]  L∈[0,1]
+  return h2lch(hex);
+}
+// For display in sidebar: always returns [L,C,H] in a canonical scale
+// LCH/CIELAB: L∈0-100, C=chroma or |ab|, H=hue°
+// OKLCH/OKLAB: L∈0-1 → scaled to 0-100 for display
+function hex2display(hex,cs){
+  if(cs==='lch')    { const[L,C,H]=h2lch(hex);   return[L,C,H]; }
+  if(cs==='oklch')  { const[L,C,H]=h2oklch(hex);  return[L*100,C*1000,H]; }  // scale for legibility
+  if(cs==='cielab') { const[L,a,b]=h2lab(hex);    const[C,H]=ab2polar(a,b); return[L,C,H]; }
+  if(cs==='oklab')  { const[L,a,b]=h2oklab(hex);  const[C,H]=ab2polar(a,b); return[L*100,C*1000,H]; }
+  return h2lch(hex);
+}
+// Generate a hex from (targetLightness, sourceCoords, chromaScale, cs)
+// targetL is in the SAME scale as the space's L (0-100 for Lab/LCH, 0-1 for OK*)
+function makeStep(tL,srcCoords,cs,chromaScale){
+  if(cs==='lch'){
+    const[,C,H]=srcCoords;
+    return lch2hc_gamut(tL,C*chromaScale,H);
+  }
+  if(cs==='oklch'){
+    const[,C,H]=srcCoords;
+    return oklch2hc_gamut(tL,C*chromaScale,H);
+  }
+  if(cs==='cielab'){
+    // Interpolate a,b linearly toward gray (a=0,b=0) by chromaScale
+    const[,a,b]=srcCoords;
+    const[xa,xb]=[a*chromaScale,b*chromaScale];
+    const[x,y,z]=lab2x(tL,xa,xb);
+    const[r,g,bv]=x2r(x,y,z);
+    // if out of gamut, clamp chroma
+    if(r<0||r>255||g<0||g>255||bv<0||bv>255){
+      const[C,H]=ab2polar(xa,xb);
+      return lch2hc_gamut(tL,C,H);
+    }
+    return r2h(r,g,bv);
+  }
+  if(cs==='oklab'){
+    const[,a,b]=srcCoords;
+    const[xa,xb]=[a*chromaScale,b*chromaScale];
+    const[r,g,bv]=oklab2r(tL,xa,xb);
+    if(r<0||r>255||g<0||g>255||bv<0||bv>255){
+      const[C,H]=ab2polar(xa,xb);
+      return oklch2hc_gamut(tL,C,H);
+    }
+    return r2h(r,g,bv);
+  }
+  return lch2hc_gamut(tL,srcCoords[1]*chromaScale,srcCoords[2]);
+}
+// Return the lightness range for a colorspace (used for L-axis tonal ramps)
+// LCH/CIELAB: 0–100; OKLCH/OKLAB: 0–1
+function csLRange(cs){ return(cs==='oklch'||cs==='oklab')?[0,1]:[0,100]; }
+// Convert M3 tone (0-100) to the colorspace L range
+function toneToL(tone,cs){ return(cs==='oklch'||cs==='oklab')?tone/100:tone; }
+// Find anchor index: which tone is closest in L to the source color
+function findAnchor(srcCoords,tones,cs){
+  const srcL=srcCoords[0]; // already in cs-native scale
+  let ai=0,md=Infinity;
+  tones.forEach((tone,i)=>{
+    const d=Math.abs(toneToL(tone,cs)-srcL);
+    if(d<md){md=d;ai=i;}
+  });
+  return ai;
+}
+// Shared coords attached to a step hex (always stored as LCH for display)
+function stepMeta(hex){
+  // Store internal coords as LCH always (for display/WCAG)
+  return h2lch(hex);
+}
+// ── Legacy wrapper (still used by fmtVal / h2ok) ──────
+function h2ok(hex){
+  const[L,a,b]=h2oklab(hex);
+  const[C,H]=ab2polar(a,b);
+  return[L,C,H];
+}
+function lum(hex){const[r,g,b]=h2r(hex);return .2126*lin(r)+.7152*lin(g)+.0722*lin(b);}
+function cr(h1,h2){const l1=lum(h1),l2=lum(h2),hi=Math.max(l1,l2),lo=Math.min(l1,l2);return(hi+.05)/(lo+.05);}
+function wlvl(r){if(r>=7)return'AAA';if(r>=4.5)return'AA';if(r>=3)return'AA Large';return'Fail';}
+function wcls(r){if(r>=7)return'waaa';if(r>=4.5)return'waa';if(r>=3)return'waal';return'wfail';}
+function idealTxt(hex){return cr(hex,'#ffffff')>=cr(hex,'#000000')?'#ffffff':'#000000';}
+
+// ── Colorspace metadata ────────────────────────────────
+const CS_META={
+  lch:   {label:'LCH',    desc:'CIELCh — clásico, hue shift en azules',     axes:['L','C','H°'],  lScale:100},
+  oklch: {label:'OKLCH',  desc:'OKLCh — perceptualmente uniforme, fix azules',axes:['Lok','Cok','H°'],lScale:1},
+  cielab:{label:'CIELAB', desc:'CIELab — interpolación cartesiana a/b',      axes:['L','a','b'],   lScale:100},
+  oklab: {label:'OKLAB',  desc:'OKLab — cartesiana uniforme, ideal neutros',  axes:['Lok','a','b'], lScale:1},
+};
+
+// ── M3 Tonal ───────────────────────────────────────────
+const M3T=[0,10,20,30,40,50,60,70,80,90,95,99,100];
+function genM3(hex, cs='lch', anchored=true){
+  const srcCoords=hex2cs(hex,cs);  // native-space coords
+  const cm=parseFloat(document.getElementById('chroma-slider').value);
+  const ai=findAnchor(srcCoords,M3T,cs);
+
+  const steps=M3T.map((tone,i)=>{
+    if(i===ai && anchored){
+      const[L,C,H]=h2lch(hex);
+      return{hex,L,C,H,tone,isAnchor:true};
+    }
+    const tL=toneToL(tone,cs);
+    const distFromAnchor=Math.abs(i-ai)/(M3T.length-1);
+    let cs2=cm;
+    if(chromaMode==='taper')       cs2=cm*(1-distFromAnchor*.5);
+    else if(chromaMode==='boost')  cs2=cm*(.7+distFromAnchor*.6);
+    if(tone===0||tone===100) cs2=0;
+    const outHex=makeStep(tL,srcCoords,cs,Math.max(0,cs2));
+    const[oL,oC,oH]=h2lch(outHex);
+    return{hex:outHex,L:oL,C:oC,H:oH,tone,isAnchor:i===ai};
+  });
+  return{steps,anchorIdx:ai};
+}
+
+// ── Surface Scale ─────────────────────────────────────
+// Dense 21-tone tonal scale derived from neutral — same logic as M3 but finer steps.
+// tone-0 = pure black, tone-100 = pure white (achromatic by spec).
+const SURF_T=[0,4,6,10,12,17,20,24,30,40,50,60,70,80,87,90,92,94,96,99,100];
+function genSurface(hex, cs='lch', anchored=true){
+  const srcCoords=hex2cs(hex,cs);
+  const cm=parseFloat(document.getElementById('chroma-slider').value);
+  const ai=findAnchor(srcCoords,SURF_T,cs);
+
+  const steps=SURF_T.map((tone,i)=>{
+    if(i===ai && anchored){const[L,C,H]=h2lch(hex);return{hex,L,C,H,tone,isAnchor:true};}
+
+    const rawTL=toneToL(tone,cs);
+    // Ensure tone-4/6 are visually distinct from tone-0 (black)
+    const minL=(cs==='oklch'||cs==='oklab')?0.03:3;
+    const tL=(tone>0&&tone<8)?Math.max(rawTL,minL):rawTL;
+
+    // Same chroma curve as genM3 / genCustom — no suppression
+    const distFromAnchor=Math.abs(i-ai)/(SURF_T.length-1);
+    let cs2=cm;
+    if(chromaMode==='taper')      cs2=cm*(1-distFromAnchor*.5);
+    else if(chromaMode==='boost') cs2=cm*(.7+distFromAnchor*.6);
+    if(tone===0||tone===100) cs2=0;
+
+    const outHex=makeStep(tL,srcCoords,cs,Math.max(0,cs2));
+    const[oL,oC,oH]=h2lch(outHex);
+    return{hex:outHex,L:oL,C:oC,H:oH,tone,isAnchor:i===ai};
+  });
+  return{steps,anchorIdx:ai};
+}
+
+// ── Custom Scale ───────────────────────────────────────
+let chromaMode='taper', scaleSystem='both', tokenFmt='css', jsonFmt='dtf';
+let palettes={};
+
+function stepNames(n){
+  const sel=document.getElementById('naming-select').value;
+  if(sel==='numeric'){
+    const all=['50','100','150','200','250','300','350','400','450','500','550','600','650','700','750','800','850','900','950'];
+    const step=Math.floor((all.length-1)/(n-1));
+    return Array.from({length:n},(_,i)=>all[Math.min(i*step,all.length-1)]);
+  }
+  if(sel==='steps') return Array.from({length:n},(_,i)=>`step-${i+1}`);
+  return Array.from({length:n},(_,i)=>`t${i}`);
+}
+
+function genCustom(hex,n,cs='lch',anchored=true){
+  const srcCoords=hex2cs(hex,cs);
+  const cm=parseFloat(document.getElementById('chroma-slider').value);
+  // Generate L ramp in cs-native scale (0-100 for Lab/LCH, 0-1 for OK*)
+  const[lMin,lMax]=csLRange(cs);
+  const ls=Array.from({length:n},(_,i)=>(lMax*0.97)-(i/(n-1))*(lMax*0.94));
+  const srcL=srcCoords[0];
+  let ai=0,md=Infinity;
+  ls.forEach((v,i)=>{const d=Math.abs(v-srcL);if(d<md){md=d;ai=i;}});
+  const steps=ls.map((tL,i)=>{
+    if(i===ai && anchored){const[L,C,H]=h2lch(hex);return{hex,L,C,H,isAnchor:true};}
+    const dist=Math.abs(i-ai)/(n-1);
+    let cs2=cm;
+    if(chromaMode==='taper') cs2=cm*(1-dist*.5);
+    else if(chromaMode==='boost') cs2=cm*(.7+dist*.6);
+    const oh=makeStep(tL,srcCoords,cs,Math.max(0,cs2));
+    const[oL,oC,oH]=h2lch(oh);
+    return{hex:oh,L:oL,C:oC,H:oH,isAnchor:i===ai};
+  });
+  return{steps,anchorIdx:ai};
+}
+
+// ── State ──────────────────────────────────────────────
+let colors=[
+  {name:'Primary',role:'primary',hex:'#5B4CF5',cs:'lch',anchor:true},
+  {name:'Secondary',role:'secondary',hex:'#EC4899',cs:'lch',anchor:true},
+  {name:'Neutral',role:'neutral',hex:'#64748B',cs:'lch',anchor:true}
+];
+
+let semTokens=[];
+function initSem(){
+  semTokens=[
+    {g:'color',name:'Primary',         tok:'color-primary',          role:'primary',  step:'m3-40', dr:'primary',  ds:'m3-80'},
+    {g:'color',name:'On Primary',      tok:'color-on-primary',       role:'primary',  step:'m3-100',dr:'primary',  ds:'m3-20'},
+    {g:'color',name:'Primary Container',tok:'color-primary-container',role:'primary', step:'m3-90', dr:'primary',  ds:'m3-30'},
+    {g:'color',name:'On Primary Cont.',tok:'color-on-primary-container',role:'primary',step:'m3-10',dr:'primary',  ds:'m3-90'},
+    {g:'color',name:'Secondary',       tok:'color-secondary',        role:'secondary',step:'m3-40', dr:'secondary',ds:'m3-80'},
+    {g:'color',name:'On Secondary',    tok:'color-on-secondary',     role:'secondary',step:'m3-100',dr:'secondary',ds:'m3-20'},
+    {g:'color',name:'Sec. Container',  tok:'color-secondary-container',role:'secondary',step:'m3-90',dr:'secondary',ds:'m3-30'},
+    {g:'color',name:'On Sec. Cont.',   tok:'color-on-secondary-container',role:'secondary',step:'m3-10',dr:'secondary',ds:'m3-90'},
+    {g:'surf',name:'Background',       tok:'color-background',       role:'neutral',  step:'m3-99', dr:'neutral',  ds:'m3-10'},
+    {g:'surf',name:'On Background',    tok:'color-on-background',    role:'neutral',  step:'m3-10', dr:'neutral',  ds:'m3-90'},
+    {g:'surf',name:'Surface',          tok:'color-surface',          role:'neutral',  step:'m3-99', dr:'neutral',  ds:'m3-10'},
+    {g:'surf',name:'On Surface',       tok:'color-on-surface',       role:'neutral',  step:'m3-10', dr:'neutral',  ds:'m3-90'},
+    {g:'surf',name:'Surface Variant',  tok:'color-surface-variant',  role:'neutral',  step:'m3-90', dr:'neutral',  ds:'m3-30'},
+    {g:'surf',name:'On Surface Var.',  tok:'color-on-surface-variant',role:'neutral', step:'m3-30', dr:'neutral',  ds:'m3-80'},
+    {g:'surf',name:'Outline',          tok:'color-outline',          role:'neutral',  step:'m3-50', dr:'neutral',  ds:'m3-60'},
+    // Surface elevation tokens (using dedicated surface scale)
+    {g:'elev',name:'Surface Elev. 0',   tok:'color-surface-elev-0',   role:'neutral',  step:'surf-99',dr:'neutral',  ds:'surf-10'},
+    {g:'elev',name:'Surface Elev. 1',   tok:'color-surface-elev-1',   role:'neutral',  step:'surf-96',dr:'neutral',  ds:'surf-12'},
+    {g:'elev',name:'Surface Elev. 2',   tok:'color-surface-elev-2',   role:'neutral',  step:'surf-94',dr:'neutral',  ds:'surf-17'},
+    {g:'elev',name:'Surface Elev. 3',   tok:'color-surface-elev-3',   role:'neutral',  step:'surf-92',dr:'neutral',  ds:'surf-20'},
+    {g:'elev',name:'Surface Elev. 4',   tok:'color-surface-elev-4',   role:'neutral',  step:'surf-90',dr:'neutral',  ds:'surf-24'},
+    {g:'elev',name:'Surface Elev. 5',   tok:'color-surface-elev-5',   role:'neutral',  step:'surf-87',dr:'neutral',  ds:'surf-30'},
+  ];
+}
+initSem();
+
+function addColorSlot(){colors.push({name:`Color ${colors.length+1}`,role:`color-${colors.length+1}`,hex:'#22c55e',cs:'lch',anchor:true});renderSidebar();generateAll();}
+function removeColor(i){colors.splice(i,1);renderSidebar();generateAll();}
+function toggleAnchor(i){colors[i].anchor=colors[i].anchor===false?true:false;renderSidebar();generateAll();}
+
+// ── Debounce ───────────────────────────────────────────
+function debounce(fn,ms){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),ms);};}
+const debouncedGenerate=debounce(()=>generateAll(),180);
+
+// ── Persistencia (localStorage) ────────────────────────
+function saveState(){
+  try{
+    localStorage.setItem('lch-gen-v1',JSON.stringify({
+      colors,semTokens,chromaMode,scaleSystem,tokenFmt,jsonFmt,
+      steps:document.getElementById('steps-slider').value,
+      chroma:document.getElementById('chroma-slider').value,
+      dark:document.getElementById('dark-toggle').classList.contains('on'),
+      wcag:document.getElementById('wcag-toggle').classList.contains('on'),
+      naming:document.getElementById('naming-select').value,
+      format:document.getElementById('format-select').value
+    }));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem('lch-gen-v1');if(!raw) return false;
+    const s=JSON.parse(raw);
+    if(s.colors)      colors=s.colors;
+    if(s.semTokens)   semTokens=s.semTokens;
+    if(s.chromaMode)  chromaMode=s.chromaMode;
+    if(s.scaleSystem) scaleSystem=s.scaleSystem;
+    if(s.tokenFmt)    tokenFmt=s.tokenFmt;
+    if(s.jsonFmt)     jsonFmt=s.jsonFmt;
+    if(s.steps) {document.getElementById('steps-slider').value=s.steps;document.getElementById('steps-val').textContent=s.steps;}
+    if(s.chroma){document.getElementById('chroma-slider').value=s.chroma;document.getElementById('chroma-val').textContent=parseFloat(s.chroma).toFixed(2);}
+    if(s.dark!==undefined)  document.getElementById('dark-toggle').classList.toggle('on',s.dark);
+    if(s.wcag!==undefined)  document.getElementById('wcag-toggle').classList.toggle('on',s.wcag);
+    if(s.naming) document.getElementById('naming-select').value=s.naming;
+    if(s.format) document.getElementById('format-select').value=s.format;
+    if(s.chromaMode){document.getElementById('chroma-seg').querySelectorAll('.seg-btn').forEach((b,i)=>{b.classList.toggle('active',['taper','flat','boost'][i]===s.chromaMode);});}
+    if(s.scaleSystem){document.getElementById('scale-seg').querySelectorAll('.seg-btn').forEach((b,i)=>{b.classList.toggle('active',['both','custom','m3'][i]===s.scaleSystem);});}
+    return true;
+  }catch(e){return false;}
+}
+
+// ── Sidebar ────────────────────────────────────────────
+// CS badge color per space
+const CS_BADGE={lch:'#7c6af7',oklch:'#22c55e',cielab:'#f59e0b',oklab:'#38bdf8'};
+
+function renderSidebar(){
+  document.getElementById('color-inputs').innerHTML=colors.map((c,i)=>{
+    const cs=c.cs||'lch';
+    const meta=CS_META[cs];
+    const axes=meta.axes;
+    return`<div style="${i>0?'padding-top:9px;border-top:1px solid var(--border);margin-top:2px':''}">
+      <div class="color-row">
+        <input type="color" class="color-swatch-input" value="${c.hex}" onchange="upC(${i},'hex',this.value)" id="sw-${i}">
+        <div class="color-info">
+          <div class="color-label-row">
+            <input style="background:transparent;border:none;outline:none;font-family:'Syne',sans-serif;font-weight:600;font-size:12px;color:var(--text);width:80px;" value="${c.name}" onchange="upC(${i},'name',this.value)">
+            <input style="background:transparent;border:none;outline:none;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);width:72px;text-align:right;" value="${c.role}" onchange="upC(${i},'role',this.value)">
+          </div>
+          <input class="hex-input" value="${c.hex}" id="hi-${i}" onchange="upC(${i},'hex',this.value)" oninput="lhU(${i},this.value)">
+        </div>
+        ${colors.length>1?`<button class="del-btn" onclick="removeColor(${i})">×</button>`:''}
+      </div>
+      <div class="lch-display" style="margin-top:5px;" id="cs-display-${i}">
+        <div class="lch-val"><div class="key" id="ax0-${i}">${axes[0]}</div><div class="val" id="lL-${i}">—</div></div>
+        <div class="lch-val"><div class="key" id="ax1-${i}">${axes[1]}</div><div class="val" id="lC-${i}">—</div></div>
+        <div class="lch-val"><div class="key" id="ax2-${i}">${axes[2]}</div><div class="val" id="lH-${i}">—</div></div>
+      </div>
+      <div style="margin-top:5px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase;">Espacio de color</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;">
+          ${Object.entries(CS_META).map(([key,m])=>`<button onclick="setCS(${i},'${key}')" id="csbtn-${i}-${key}"
+            style="padding:3px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border:1px solid ${key===cs?CS_BADGE[key]:'var(--border)'};background:${key===cs?`${CS_BADGE[key]}22`:'var(--surface3)'};color:${key===cs?CS_BADGE[key]:'var(--text3)'};transition:all .15s;"
+            title="${m.desc}">${m.label}</button>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">
+        <div class="anchor-badge" style="border-color:${CS_BADGE[cs]}44;background:${CS_BADGE[cs]}11;"><div class="anchor-dot" style="background:${CS_BADGE[cs]}"></div>${c.anchor!==false?'Anclado':'Generativo'} · ${meta.label}</div>
+        <div id="as-${i}" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)"></div>
+      </div>
+      <div class="toggle-row" style="margin-top:7px;padding:6px 8px;background:var(--surface3);border-radius:6px;border:1px solid var(--border);">
+        <div>
+          <div class="toggle-label">Anclar color source</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;">${c.anchor!==false?'Brand color preservado en su posición de escala':'Escala libre · hue y chroma del source'}</div>
+        </div>
+        <div class="toggle${c.anchor!==false?' on':''}" onclick="toggleAnchor(${i})"></div>
+      </div>
+    </div>`;
+  }).join('');
+  colors.forEach((c,i)=>updCsDisplay(i,c.hex,c.cs||'lch'));
+}
+
+function setCS(i,cs){
+  colors[i].cs=cs;
+  renderSidebar();
+  generateAll();
+}
+
+function upC(i,f,v){
+  if(f==='hex'&&!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+  colors[i][f]=v;
+  if(f==='hex'){document.getElementById(`sw-${i}`).value=v;document.getElementById(`hi-${i}`).value=v;updCsDisplay(i,v,colors[i].cs||'lch');}
+  generateAll();
+}
+function lhU(i,v){v=v.startsWith('#')?v:'#'+v;if(/^#[0-9a-fA-F]{6}$/.test(v)){colors[i].hex=v;document.getElementById(`sw-${i}`).value=v;updCsDisplay(i,v,colors[i].cs||'lch');generateAll();}}
+
+function updCsDisplay(i,hex,cs){
+  try{
+    const[v0,v1,v2]=hex2display(hex,cs);
+    const isOK=(cs==='oklch'||cs==='oklab');
+    document.getElementById(`lL-${i}`).textContent=isOK?(v0/100).toFixed(4):v0.toFixed(1);
+    document.getElementById(`lC-${i}`).textContent=isOK?(v1/1000).toFixed(4):v1.toFixed(1);
+    document.getElementById(`lH-${i}`).textContent=(cs==='cielab'||cs==='oklab')?v2.toFixed(1):v2.toFixed(1);
+    const axes=CS_META[cs].axes;
+    ['ax0','ax1','ax2'].forEach((id,k)=>{const el=document.getElementById(`${id}-${i}`);if(el)el.textContent=axes[k];});
+  }catch(e){}
+}
+// Legacy alias used by other parts
+function updLch(i,hex){updCsDisplay(i,hex,colors[i]?.cs||'lch');}
+
+// ── Generate All ───────────────────────────────────────
+function generateAll(){
+  const n=parseInt(document.getElementById('steps-slider').value);
+  palettes={};
+  colors.forEach(c=>{
+    const cs=c.cs||'lch';
+    const anchored=c.anchor!==false;
+    const cust=genCustom(c.hex,n,cs,anchored);
+    const m3res=genM3(c.hex,cs,anchored);
+    const neutralRole=colors.find(x=>x.role==='neutral')||colors[0];
+    const surfHex=c.role==='neutral'?c.hex:neutralRole.hex;
+    const surfCs=c.role==='neutral'?cs:(neutralRole.cs||'lch');
+    const neutralAnchored=c.role==='neutral'?anchored:(neutralRole.anchor!==false);
+    const surfRes=c.role==='neutral'?genSurface(surfHex,surfCs,neutralAnchored):null;
+    palettes[c.role]={
+      custom:cust.steps, ai:cust.anchorIdx,
+      m3:m3res.steps,    m3ai:m3res.anchorIdx,
+      surf:surfRes?surfRes.steps:null, surfai:surfRes?surfRes.anchorIdx:null,
+      src:c.hex, lch:h2lch(c.hex), name:c.name, role:c.role, cs, anchored
+    };
+    const idx=colors.indexOf(c);
+    const el=document.getElementById(`as-${idx}`);
+    if(el){
+      const cName=stepNames(n)[cust.anchorIdx];
+      const mTone=M3T[m3res.anchorIdx];
+      el.textContent=`custom: ${cName} | M3: tone-${mTone}`;
+    }
+  });
+  renderScales(); renderWcag(); renderSemantic(); renderTokens(); renderJson(); renderPreview();
+  saveState();
+}
+
+// ── Resolve step hex ───────────────────────────────────
+function resHex(role,step){
+  const p=palettes[role];if(!p) return'#888';
+  if(step.startsWith('m3-')){const t=parseInt(step.slice(3));const f=p.m3.find(s=>s.tone===t);return f?f.hex:'#888';}
+  if(step.startsWith('surf-')){
+    const neutralPal=palettes[role]?.surf?palettes[role]:Object.values(palettes).find(x=>x.surf);
+    if(!neutralPal||!neutralPal.surf) return'#888';
+    const t=parseInt(step.slice(5));const f=neutralPal.surf.find(s=>s.tone===t);return f?f.hex:'#888';
+  }
+  const n=parseInt(document.getElementById('steps-slider').value);
+  const names=stepNames(n);const idx=names.indexOf(step);
+  if(idx>=0&&p.custom[idx]) return p.custom[idx].hex;
+  return'#888';
+}
+
+// ── Scales tab ─────────────────────────────────────────
+function renderScales(){
+  const n=parseInt(document.getElementById('steps-slider').value);
+  const names=stepNames(n);
+  const showW=document.getElementById('wcag-toggle').classList.contains('on');
+  let html='';
+  colors.forEach(c=>{
+    const p=palettes[c.role];if(!p) return;
+    const[sL,sC,sH]=p.lch;
+    const csBadgeColor=CS_BADGE[p.cs||'lch'];
+    const csLabel=CS_META[p.cs||'lch'].label;
+    html+=`<div class="palette-block">
+      <div class="palette-header">
+        <div class="palette-title"><div class="pdot" style="background:${p.src}"></div>${c.name}<span style="font-family:'DM Mono',monospace;font-weight:400;font-size:11px;color:var(--text3)">${p.src}</span><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:${csBadgeColor}22;color:${csBadgeColor};border:1px solid ${csBadgeColor}44;">${csLabel}</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">LCH ${sL.toFixed(0)} ${sC.toFixed(0)} ${sH.toFixed(0)}</div>
+      </div>`;
+
+    if(scaleSystem!=='m3'){
+      html+=`<div class="sys-label">Custom · anchor en ${names[p.ai]}</div>
+      <div class="scale-strip">${p.custom.map((s,i)=>{
+        const tc=idealTxt(s.hex);
+        return`<div class="sc${s.isAnchor?' anchor':''}" style="background:${s.hex}"
+          onmouseenter="showTT(event,'${s.hex}',${s.L.toFixed(1)},${s.C.toFixed(1)},${s.H.toFixed(1)},'${c.role}-${names[i]}'${s.isAnchor?',true':''})"
+          onmouseleave="hideTT()" onclick="cpHex('${s.hex}')">
+          <span class="sn" style="color:${tc}">${names[i]}</span></div>`;
+      }).join('')}</div>
+      <div class="scale-labels">${names.map((nm,i)=>`<div class="sl${p.custom[i]?.isAnchor?' ia':''}">${nm}${showW?'<br>'+wmini(p.custom[i]?.hex):''}</div>`).join('')}</div>`;
+    }
+
+    if(scaleSystem!=='custom'){
+      html+=`<div class="sys-label">M3 Tonal Palette 0–100 · anchor en tone-${M3T[p.m3ai]}</div>
+      <div class="scale-strip">${p.m3.map(s=>{
+        const tc=idealTxt(s.hex);
+        return`<div class="sc${s.isAnchor?' anchor':''}" style="background:${s.hex}"
+          onmouseenter="showTT(event,'${s.hex}',${s.L.toFixed(1)},${s.C.toFixed(1)},${s.H.toFixed(1)},'${c.role}-tone-${s.tone}'${s.isAnchor?',true':''})"
+          onmouseleave="hideTT()" onclick="cpHex('${s.hex}')">
+          <span class="sn" style="color:${tc}">${s.tone}</span></div>`;
+      }).join('')}</div>
+      <div class="scale-labels">${p.m3.map(s=>`<div class="sl${s.isAnchor?' ia':''}">${s.tone}${showW?'<br>'+wmini(s.hex):''}</div>`).join('')}</div>`;
+    }
+
+    // Surface scale strip — only for neutral role
+    if(p.surf){
+      const surfAnchorTone=SURF_T[p.surfai];
+      html+=`<div class="sys-label">Surface Scale · ${SURF_T.length} tonos · anchor en tone-${surfAnchorTone}</div>
+<div class="scale-strip" style="height:46px;">${p.surf.map(s=>{
+  const tc=idealTxt(s.hex);
+  return `<div class="sc${s.isAnchor?' anchor':''}" style="background:${s.hex}"
+    onmouseenter="showTT(event,'${s.hex}',${s.L.toFixed(1)},${s.C.toFixed(1)},${s.H.toFixed(1)},'neutral-surface-${s.tone}'${s.isAnchor?',true':''})"
+    onmouseleave="hideTT()" onclick="cpHex('${s.hex}')">
+    <span class="sn" style="color:${tc}">${s.tone}</span></div>`;
+}).join('')}</div>
+<div class="scale-labels">${p.surf.map(s=>`<div class="sl${s.isAnchor?' ia':''}">${s.tone}${showW?'<br>'+wmini(s.hex):''}</div>`).join('')}</div>`;
+    }
+
+    const anch=p.custom[p.ai];
+    const anchM3=p.m3[p.m3ai];
+    const cw=cr(anch.hex,'#ffffff').toFixed(1),cb=cr(anch.hex,'#000000').toFixed(1);
+    html+=`<div class="chips-row">
+      <div class="chip"><div class="cl">Anchor custom</div><div class="cv" style="font-size:11px;font-family:'DM Mono',monospace;color:${anch.hex};cursor:pointer;" onclick="cpHex('${anch.hex}')">${anch.hex}</div></div>
+      <div class="chip"><div class="cl">Anchor M3</div><div class="cv" style="font-size:11px;font-family:'DM Mono',monospace;color:${anchM3.hex};cursor:pointer;" onclick="cpHex('${anchM3.hex}')">tone-${anchM3.tone} ${anchM3.hex}</div></div>
+      <div class="chip"><div class="cl">vs White</div><div class="cv" style="font-size:11px;">${cw}:1 <span class="wbig ${wcls(parseFloat(cw))}">${wlvl(parseFloat(cw))}</span></div></div>
+      <div class="chip"><div class="cl">vs Black</div><div class="cv" style="font-size:11px;">${cb}:1 <span class="wbig ${wcls(parseFloat(cb))}">${wlvl(parseFloat(cb))}</span></div></div>
+      <div class="chip"><div class="cl">Chroma</div><div class="cv">${p.lch[1].toFixed(0)}</div></div>
+    </div></div>`;
+  });
+  document.getElementById('scales-container').innerHTML=html;
+}
+
+function wmini(hex){if(!hex) return'';const cw=cr(hex,'#fff'),cb=cr(hex,'#000');const b=Math.max(cw,cb);return`<span class="wb ${wcls(b)}" style="font-size:9px;padding:1px 4px;">${wlvl(b)}</span>`;}
+
+// ── WCAG tab ───────────────────────────────────────────
+function renderWcag(){
+  const n=parseInt(document.getElementById('steps-slider').value);
+  const names=stepNames(n);
+  let html='';
+  colors.forEach(c=>{
+    const p=palettes[c.role];if(!p) return;
+    html+=`<div style="margin-bottom:26px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:9px;display:flex;align-items:center;gap:7px;"><div style="width:8px;height:8px;border-radius:50%;background:${p.src}"></div>${c.name}</div>`;
+
+    if(scaleSystem!=='m3'){
+      html+=`<div class="sys-label" style="margin:0 0 5px;">Custom scale</div>
+      <table class="wcag-table"><thead><tr>
+        <th>Paso</th><th>Color</th><th>HEX</th><th>L</th>
+        <th>vs ⬜ ratio</th><th>nivel</th><th>vs ⬛ ratio</th><th>nivel</th>
+      </tr></thead><tbody>`;
+      p.custom.forEach((s,i)=>{
+        const cw=cr(s.hex,'#ffffff'),cb=cr(s.hex,'#000000');
+        html+=`<tr>
+          <td style="color:${s.isAnchor?'var(--accent2)':'var(--text2)'};">${names[i]}${s.isAnchor?' ←':''}</td>
+          <td><div class="swatch-sm" style="background:${s.hex}" onclick="cpHex('${s.hex}')" title="${s.hex}"></div></td>
+          <td style="cursor:pointer;" onclick="cpHex('${s.hex}')">${s.hex}</td>
+          <td>${s.L.toFixed(1)}</td>
+          <td><b>${cw.toFixed(2)}:1</b></td><td><span class="wb ${wcls(cw)}">${wlvl(cw)}</span></td>
+          <td><b>${cb.toFixed(2)}:1</b></td><td><span class="wb ${wcls(cb)}">${wlvl(cb)}</span></td>
+        </tr>`;
+      });
+      html+='</tbody></table>';
+    }
+
+    if(scaleSystem!=='custom'){
+      html+=`<div class="sys-label" style="margin:12px 0 5px;">M3 Tonal 0–100</div>
+      <table class="wcag-table"><thead><tr>
+        <th>Tono</th><th>Color</th><th>HEX</th><th>L</th>
+        <th>vs ⬜ ratio</th><th>nivel</th><th>vs ⬛ ratio</th><th>nivel</th>
+      </tr></thead><tbody>`;
+      p.m3.forEach(s=>{
+        const cw=cr(s.hex,'#ffffff'),cb=cr(s.hex,'#000000');
+        html+=`<tr>
+          <td style="color:${s.isAnchor?'var(--accent2)':'var(--text2)'};">tone-${s.tone}${s.isAnchor?' ←':''}</td>
+          <td><div class="swatch-sm" style="background:${s.hex}" onclick="cpHex('${s.hex}')" title="${s.hex}"></div></td>
+          <td style="cursor:pointer;" onclick="cpHex('${s.hex}')">${s.hex}</td>
+          <td>${s.L.toFixed(1)}</td>
+          <td><b>${cw.toFixed(2)}:1</b></td><td><span class="wb ${wcls(cw)}">${wlvl(cw)}</span></td>
+          <td><b>${cb.toFixed(2)}:1</b></td><td><span class="wb ${wcls(cb)}">${wlvl(cb)}</span></td>
+        </tr>`;
+      });
+      html+='</tbody></table>';
+    }
+    html+='</div>';
+  });
+  document.getElementById('wcag-container').innerHTML=html;
+}
+
+// ── Semantic tokens tab ────────────────────────────────
+function buildRSOpts(curRole,curStep){
+  let o='';
+  // Surface scale options (from neutral)
+  const neutralPal=Object.values(palettes).find(x=>x.surf);
+  if(neutralPal){
+    o+='<optgroup label="Surface Scale (neutral)">';
+    SURF_T.forEach(t=>{const v=`neutral::surf-${t}`;o+=`<option value="${v}"${curRole==='neutral'&&curStep===`surf-${t}`?' selected':''}>surface tone-${t}</option>`;});
+    o+='</optgroup>';
+  }
+  colors.forEach(c=>{
+    const p=palettes[c.role];if(!p) return;
+    o+=`<optgroup label="${c.name} · M3">`;
+    M3T.forEach(t=>{const v=`${c.role}::m3-${t}`;o+=`<option value="${v}"${curRole===c.role&&curStep===`m3-${t}`?' selected':''}>${c.name} tone-${t}</option>`;});
+    o+='</optgroup>';
+    const n=parseInt(document.getElementById('steps-slider').value);const names=stepNames(n);
+    o+=`<optgroup label="${c.name} · Custom">`;
+    names.forEach(nm=>{const v=`${c.role}::${nm}`;o+=`<option value="${v}"${curRole===c.role&&curStep===nm?' selected':''}>${c.name} ${nm}</option>`;});
+    o+='</optgroup>';
+  });
+  return o;
+}
+
+function renderSemantic(){
+  const groups=[
+    {key:'color',label:'Roles de color (M3)'},
+    {key:'surf', label:'Superficie & Background'},
+    {key:'elev', label:'Surface Elevation (capas de UI)'},
+    {key:'custom',label:'Tokens personalizados'}
+  ];
+  let html=`<div style="display:grid;grid-template-columns:1fr 280px;gap:16px;margin-bottom:18px;">
+    <div>
+      <div class="section-label" style="margin-bottom:6px;">Tokens semánticos</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;">Cada token apunta a un paso de escala M3 o custom. Edita el nombre y el paso para cada modo. Click en cualquier swatch para copiar el HEX.</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+      <div class="section-label" style="margin-bottom:6px;">Preview semántico</div>
+      <div id="sem-preview" style="display:flex;flex-direction:column;gap:3px;"></div>
+    </div>
+  </div>
+  <div class="sem-head">
+    <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;">Token / nombre</div>
+    <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;">☀ Light mode</div>
+    <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;">◑ Dark mode</div>
+    <div></div>
+  </div>`;
+
+  groups.forEach(grp=>{
+    const items=semTokens.filter(t=>t.g===grp.key);
+    if(items.length===0&&grp.key!=='custom') return;
+    html+=`<div style="margin-bottom:16px;"><div class="grp-label">${grp.label}</div><div>`;
+    items.forEach(tok=>{
+      const gi=semTokens.indexOf(tok);
+      const lh=resHex(tok.role,tok.step);
+      const dh=resHex(tok.dr||tok.role,tok.ds||tok.step);
+      const lcw=cr(lh,'#fff'),lcb=cr(lh,'#000');
+      const dcw=cr(dh,'#fff'),dcb=cr(dh,'#000');
+      html+=`<div class="sem-row" style="border-bottom:1px solid var(--border);padding:5px 0;">
+        <input class="sem-in" value="${tok.tok}" onchange="updSem(${gi},'tok',this.value)" placeholder="color-token">
+        <div style="display:flex;gap:5px;align-items:center;">
+          <div style="width:22px;height:22px;border-radius:4px;background:${lh};border:1px solid var(--border2);cursor:pointer;flex-shrink:0;" onclick="cpHex('${lh}')" title="${lh} — click copiar"></div>
+          <select class="sem-sel" onchange="updSemStep(${gi},'light',this.value)">${buildRSOpts(tok.role,tok.step)}</select>
+          <span class="wb ${wcls(Math.max(lcw,lcb))}" style="font-size:10px;white-space:nowrap;">${wlvl(Math.max(lcw,lcb))}</span>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <div style="width:22px;height:22px;border-radius:4px;background:${dh};border:1px solid var(--border2);cursor:pointer;flex-shrink:0;" onclick="cpHex('${dh}')" title="${dh} — click copiar"></div>
+          <select class="sem-sel" onchange="updSemStep(${gi},'dark',this.value)">${buildRSOpts(tok.dr||tok.role,tok.ds||tok.step)}</select>
+          <span class="wb ${wcls(Math.max(dcw,dcb))}" style="font-size:10px;white-space:nowrap;">${wlvl(Math.max(dcw,dcb))}</span>
+        </div>
+        <button class="del-btn" onclick="delSem(${gi})">×</button>
+      </div>`;
+    });
+    html+=`</div><div class="add-btn" onclick="addSem('${grp.key}')">+ Token en "${grp.label}"</div></div>`;
+  });
+
+  document.getElementById('semantic-container').innerHTML=html;
+  renderSemPreview();
+}
+
+function updSem(i,f,v){semTokens[i][f]=v;renderSemantic();renderTokens();renderJson();renderPreview();}
+function updSemStep(i,mode,v){
+  const[role,step]=v.split('::');
+  if(mode==='light'){semTokens[i].role=role;semTokens[i].step=step;}
+  else{semTokens[i].dr=role;semTokens[i].ds=step;}
+  renderSemantic();renderTokens();renderJson();renderPreview();
+}
+function delSem(i){semTokens.splice(i,1);renderSemantic();renderTokens();renderJson();renderPreview();}
+function addSem(g){
+  const r=colors[0]?.role||'primary';
+  semTokens.push({g,name:'Nuevo',tok:`color-custom-${Date.now()%1000}`,role:r,step:'m3-40',dr:r,ds:'m3-80'});
+  renderSemantic();renderTokens();renderJson();renderPreview();
+}
+function renderSemPreview(){
+  const el=document.getElementById('sem-preview');if(!el) return;
+  el.innerHTML=semTokens.slice(0,14).map(tok=>{
+    const lh=resHex(tok.role,tok.step);
+    const dh=resHex(tok.dr||tok.role,tok.ds||tok.step);
+    return`<div style="display:flex;align-items:center;gap:6px;">
+      <div style="display:flex;gap:2px;">
+        <div style="width:14px;height:14px;border-radius:2px;background:${lh};border:1px solid var(--border2);cursor:pointer;" onclick="cpHex('${lh}')" title="Light: ${lh}"></div>
+        <div style="width:14px;height:14px;border-radius:2px;background:${dh};border:1px solid var(--border2);cursor:pointer;" onclick="cpHex('${dh}')" title="Dark: ${dh}"></div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--${tok.tok}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Preview tab ────────────────────────────────────────
+function renderPreview(){
+  const container=document.getElementById('preview-container');
+  if(!colors.length) return;
+
+  function sHex(tok,dark){const t=semTokens.find(s=>s.tok===tok);if(!t) return null;return dark?resHex(t.dr||t.role,t.ds||t.step):resHex(t.role,t.step);}
+
+  // Resolve surface elevation tokens directly from the surface scale
+  function surfHex(elevNum,dark){
+    const tok=semTokens.find(s=>s.tok===`color-surface-elev-${elevNum}`);
+    if(tok) return dark?resHex(tok.dr||tok.role,tok.ds||tok.step):resHex(tok.role,tok.step);
+    // fallback: pull directly from surf palette
+    const neutralPal=Object.values(palettes).find(x=>x.surf);
+    if(!neutralPal||!neutralPal.surf) return null;
+    const surfTones=dark?[10,12,17,20,24,30]:[99,96,94,92,90,87];
+    const t=neutralPal.surf.find(s=>s.tone===surfTones[elevNum]);
+    return t?t.hex:null;
+  }
+
+  function mkT(dark){
+    const bg    = surfHex(0,dark) || sHex('color-background',dark) || (dark?'#0f172a':'#f8fafc');
+    const surf1 = surfHex(1,dark) || sHex('color-surface',dark)    || (dark?'#1a2332':'#ffffff');
+    const surf2 = surfHex(2,dark) || (dark?'#1e2a3a':'#f4f6f8');
+    const surf3 = surfHex(3,dark) || (dark?'#22303f':'#eef1f5');
+    const surf4 = surfHex(4,dark) || (dark?'#263545':'#e8ecf2');
+    const surf5 = surfHex(5,dark) || (dark?'#2a3a4c':'#e0e6ee');
+    const txt   = sHex('color-on-background',dark)     || (dark?'#f1f5f9':'#1e293b');
+    const txt2  = sHex('color-on-surface-variant',dark)|| (dark?'#94a3b8':'#64748b');
+    const prim  = sHex('color-primary',dark)            || '#5b4cf5';
+    const onPrim= sHex('color-on-primary',dark)         || '#ffffff';
+    const pc    = sHex('color-primary-container',dark)  || (prim+'22');
+    const onpc  = sHex('color-on-primary-container',dark)|| txt;
+    const sec   = sHex('color-secondary',dark)          || '#ec4899';
+    const out   = sHex('color-outline',dark)            || (dark?'#334155':'#e2e8f0');
+    return{bg,surf1,surf2,surf3,surf4,surf5,txt,txt2,prim,onPrim,pc,onpc,sec,out};
+  }
+
+  function card(label,t,dark){
+    const elevLabel=dark?'dark':'light';
+    return`<div class="tdemo">
+      <div class="tdemo-h" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${label}</span>
+        <span style="font-size:9px;opacity:.6;">surface elev · ${elevLabel}</span>
+      </div>
+      <!-- Outer: elev-0 (base background) -->
+      <div style="background:${t.bg};padding:12px;display:flex;flex-direction:column;gap:8px;">
+
+        <!-- Topbar: elev-2 -->
+        <div style="background:${t.surf2};border-radius:7px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;border:1px solid ${t.out}18;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:11px;color:${t.prim};">● Portal DS</div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            ${['Home','Tokens','WCAG'].map(lb=>`<div style="font-family:'DM Mono',monospace;font-size:9px;color:${t.txt2};padding:2px 6px;border-radius:3px;">${lb}</div>`).join('')}
+            <div style="width:22px;height:22px;border-radius:50%;background:${t.prim};display:flex;align-items:center;justify-content:center;font-size:9px;color:${t.onPrim};font-weight:700;">A</div>
+          </div>
+        </div>
+
+        <!-- Main row -->
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;">
+
+          <!-- Sidebar: elev-1 -->
+          <div style="background:${t.surf1};border-radius:7px;padding:9px;border:1px solid ${t.out}18;display:flex;flex-direction:column;gap:5px;">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:${t.txt2};letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">Navegación</div>
+            ${['Escalas','WCAG','Tokens','Preview'].map((lb,idx)=>`
+            <div style="background:${idx===3?t.pc:'transparent'};color:${idx===3?t.prim:t.txt2};border-radius:5px;padding:4px 7px;font-size:9px;font-family:'DM Mono',monospace;cursor:pointer;display:flex;align-items:center;gap:5px;">
+              <div style="width:5px;height:5px;border-radius:50%;background:${idx===3?t.prim:t.txt2};opacity:${idx===3?1:.4};"></div>${lb}
+            </div>`).join('')}
+            <!-- Elevation sample column -->
+            <div style="margin-top:6px;border-top:1px solid ${t.out}22;padding-top:6px;">
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:${t.txt2};opacity:.6;margin-bottom:4px;letter-spacing:.06em;">SURFACE ELEV</div>
+              ${[[t.bg,'elev-0'],[t.surf1,'elev-1'],[t.surf2,'elev-2'],[t.surf3,'elev-3'],[t.surf4,'elev-4'],[t.surf5,'elev-5']].map(([hex,lbl])=>`
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
+                <div style="width:14px;height:14px;border-radius:3px;background:${hex};border:1px solid ${t.out}30;flex-shrink:0;cursor:pointer;" onclick="cpHex('${hex}')" title="${hex}"></div>
+                <div style="font-family:'DM Mono',monospace;font-size:9px;color:${t.txt2};">${lbl}</div>
+                <div style="font-family:'DM Mono',monospace;font-size:9px;color:${t.txt2};opacity:.5;margin-left:auto;">${hex}</div>
+              </div>`).join('')}
+            </div>
+          </div>
+
+          <!-- Content area: elev-1 -->
+          <div style="display:flex;flex-direction:column;gap:7px;">
+
+            <!-- Hero card: elev-3 -->
+            <div style="background:${t.surf3};border-radius:7px;padding:11px;border:1px solid ${t.out}18;">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${t.txt};margin-bottom:2px;">Design System</div>
+              <div style="font-size:9px;color:${t.txt2};margin-bottom:9px;">Brand anchored · LCH · M3 Tonal</div>
+              <div style="display:flex;gap:5px;">
+                <button style="background:${t.prim};color:${t.onPrim};border:none;padding:4px 10px;border-radius:5px;font-size:9px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;">Primary</button>
+                <button style="background:transparent;color:${t.prim};border:1.5px solid ${t.prim};padding:4px 10px;border-radius:5px;font-size:9px;cursor:pointer;">Outline</button>
+                <button style="background:${t.pc};color:${t.prim};border:none;padding:4px 10px;border-radius:5px;font-size:9px;cursor:pointer;">Container</button>
+              </div>
+            </div>
+
+            <!-- Stats row: elev-2 and elev-4 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+              ${[['Tokens','124',t.prim,t.surf4],['WCAG AA+','98%',t.sec,t.surf4]].map(([lb,vl,cl,bg])=>`
+              <div style="background:${bg};border-radius:7px;padding:9px;border:1px solid ${t.out}18;">
+                <div style="font-size:9px;color:${t.txt2};font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">${lb}</div>
+                <div style="font-size:18px;font-weight:800;font-family:'Syne',sans-serif;color:${cl};">${vl}</div>
+              </div>`).join('')}
+            </div>
+
+            <!-- Search: elev-5 -->
+            <div style="background:${t.surf5};border-radius:7px;padding:8px 11px;display:flex;align-items:center;gap:7px;border:1px solid ${t.prim}33;">
+              <div style="font-size:10px;color:${t.txt2};opacity:.5;">⌕</div>
+              <div style="font-size:9px;color:${t.txt2};font-family:'DM Mono',monospace;flex:1;">Buscar tokens…</div>
+              <div style="background:${t.prim};color:${t.onPrim};border-radius:20px;padding:2px 8px;font-size:9px;font-weight:700;font-family:'Syne',sans-serif;">Nuevo</div>
+              <div style="background:${t.sec}22;color:${t.sec};border:1px solid ${t.sec}44;border-radius:20px;padding:2px 7px;font-size:9px;font-weight:600;font-family:'DM Mono',monospace;">Beta</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const light=mkT(false), dark=mkT(true);
+
+  // Surface strip — shows all 21 surface tones side by side
+  const neutralPal=Object.values(palettes).find(x=>x.surf);
+  const surfStrip = neutralPal?.surf ? `
+    <div style="margin-top:16px;">
+      <div class="section-label" style="margin-bottom:8px;">Surface Scale · ${SURF_T.length} tonos · derivada de Neutral</div>
+      <div style="display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--border);height:40px;margin-bottom:4px;">
+        ${neutralPal.surf.map(s=>{
+          const tc=idealTxt(s.hex);
+          return`<div style="flex:1;background:${s.hex};${s.isAnchor?'outline:2px solid rgba(255,255,255,.7);outline-offset:-2px;z-index:1;position:relative;':''}cursor:pointer;display:flex;align-items:center;justify-content:center;"
+            onclick="cpHex('${s.hex}')" title="tone-${s.tone}: ${s.hex}">
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;">
+        ${neutralPal.surf.map(s=>`<div style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);">${s.tone}</div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // Palette strips
+  const paletteStrips = colors.map(c=>{
+    const p=palettes[c.role];if(!p) return'';
+    const strips=[];
+    if(scaleSystem!=='m3') strips.push({label:'Custom',items:p.custom});
+    if(scaleSystem!=='custom') strips.push({label:'M3',items:p.m3});
+    if(p.surf) strips.push({label:'Surface',items:p.surf});
+    return strips.map(s=>`<div style="display:flex;align-items:center;gap:7px;">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);width:96px;flex-shrink:0;">${c.role} · ${s.label}</div>
+      <div style="display:flex;flex:1;border-radius:5px;overflow:hidden;height:22px;">
+        ${s.items.map(sv=>`<div style="flex:1;background:${sv.hex};${sv.isAnchor?'outline:2px solid rgba(255,255,255,.7);outline-offset:-2px;z-index:1;position:relative;':''}cursor:pointer;" onclick="cpHex('${sv.hex}')" title="${sv.hex}"></div>`).join('')}
+      </div></div>`).join('');
+  }).join('');
+
+  container.innerHTML=`
+    <div class="section-label" style="margin-bottom:10px;">UI Preview — surface elevation · tokens semánticos</div>
+    <div class="preview-grid">${card('☀ Light',light,false)}${card('◑ Dark',dark,true)}</div>
+    ${surfStrip}
+    <div style="margin-top:16px;">
+      <div class="section-label" style="margin-bottom:8px;">Paletas globales</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">${paletteStrips}</div>
+    </div>`;
+}
+
+// ── Tokens / JSON ──────────────────────────────────────
+// fmtVal: formats a hex color as the requested output format
+// paletteCs: the generation colorspace of the palette (for 'native' output mode)
+function fmtVal(hex,L,C,H,paletteCs){
+  const fmt=document.getElementById('format-select').value;
+  if(fmt==='hex') return hex;
+  if(fmt==='lch') return`lch(${L.toFixed(2)} ${C.toFixed(2)} ${H.toFixed(2)})`;
+  if(fmt==='oklch'){const[oL,oC,oH]=h2ok(hex);return`oklch(${oL.toFixed(4)} ${oC.toFixed(4)} ${oH.toFixed(2)})`;}
+  if(fmt==='hsl'){
+    const[r,g,b]=h2r(hex);const rn=r/255,gn=g/255,bn=b/255;
+    const max=Math.max(rn,gn,bn),min=Math.min(rn,gn,bn);const l=(max+min)/2;let s=0,h=0;
+    if(max!==min){s=l>.5?(max-min)/(2-max-min):(max-min)/(max+min);switch(max){case rn:h=(gn-bn)/(max-min)+(gn<bn?6:0);break;case gn:h=(bn-rn)/(max-min)+2;break;case bn:h=(rn-gn)/(max-min)+4;break;}h/=6;}
+    return`hsl(${(h*360).toFixed(1)} ${(s*100).toFixed(1)}% ${(l*100).toFixed(1)}%)`;
+  }
+  // 'native': output in the generation colorspace of this palette
+  if(fmt==='native'){
+    const cs=paletteCs||'lch';
+    if(cs==='lch')    return`lch(${L.toFixed(2)} ${C.toFixed(2)} ${H.toFixed(2)})`;
+    if(cs==='oklch')  {const[oL,oC,oH]=h2ok(hex);return`oklch(${oL.toFixed(4)} ${oC.toFixed(4)} ${oH.toFixed(2)})`;}
+    if(cs==='cielab') {const[lv,a,b]=h2lab(hex);return`lab(${lv.toFixed(2)} ${a.toFixed(2)} ${b.toFixed(2)})`;}
+    if(cs==='oklab')  {const[lv,a,b]=h2oklab(hex);return`oklab(${lv.toFixed(4)} ${a.toFixed(4)} ${b.toFixed(4)})`;}
+  }
+  return hex;
+}
+
+function renderTokens(){
+  const n=parseInt(document.getElementById('steps-slider').value);
+  const names=stepNames(n);
+  const dark=document.getElementById('dark-toggle').classList.contains('on');
+  const p=tokenFmt==='scss'?'$':tokenFmt==='less'?'@':'--';
+  let out='';
+  if(tokenFmt==='css') out+=':root {\n';
+
+  colors.forEach(c=>{
+    const pal=palettes[c.role];if(!pal) return;
+    const cs=pal.cs||'lch';
+    if(scaleSystem!=='m3'){
+      out+=`\n  /* ── ${c.name} · Custom · ${CS_META[cs].label} (anchor: ${names[pal.ai]} = ${pal.src}) ── */\n`;
+      pal.custom.forEach((s,i)=>{out+=`  ${p}color-${c.role}-${names[i]}: ${fmtVal(s.hex,s.L,s.C,s.H,cs)};${s.isAnchor?' /* ← brand anchor */':''}\n`;});
+    }
+    if(scaleSystem!=='custom'){
+      out+=`\n  /* ── ${c.name} · M3 Tonal 0-100 · ${CS_META[cs].label} ── */\n`;
+      pal.m3.forEach(s=>{out+=`  ${p}color-${c.role}-${s.tone}: ${fmtVal(s.hex,s.L,s.C,s.H,cs)};${s.isAnchor?' /* ← brand anchor */':''}\n`;});
+    }
+    if(pal.surf){
+      out+=`\n  /* ── Surface Scale · elevation layers (derivada de neutral) ── */\n`;
+      pal.surf.forEach(s=>{out+=`  ${p}color-surface-${s.tone}: ${fmtVal(s.hex,s.L,s.C,s.H,cs)};${s.isAnchor?' /* ← neutral anchor */':''}\n`;});
+    }
+  });
+
+  if(semTokens.length){
+    out+=`\n  /* ── Tokens semánticos · Light mode ── */\n`;
+    semTokens.forEach(tok=>{const hex=resHex(tok.role,tok.step);const[L,C,H]=h2lch(hex);const cs=(palettes[tok.role]||{}).cs||'lch';out+=`  ${p}${tok.tok}: ${fmtVal(hex,L,C,H,cs)};\n`;});
+  }
+  if(tokenFmt==='css') out+='\n}\n';
+
+  if(dark&&semTokens.length){
+    out+=`\n@media (prefers-color-scheme: dark) {\n  :root {\n  /* ── Tokens semánticos · Dark mode ── */\n`;
+    semTokens.forEach(tok=>{const hex=resHex(tok.dr||tok.role,tok.ds||tok.step);const[L,C,H]=h2lch(hex);const cs=(palettes[tok.dr||tok.role]||{}).cs||'lch';out+=`    ${p}${tok.tok}: ${fmtVal(hex,L,C,H,cs)};\n`;});
+    out+='  }\n}\n';
+  }
+  document.getElementById('token-output').textContent=out;
+}
+
+function renderJson(){
+  const n=parseInt(document.getElementById('steps-slider').value);
+  const names=stepNames(n);
+  const fmt=jsonFmt;
+  let obj={};
+  if(fmt==='dtf'){
+    obj={color:{},semantic:{}};
+    colors.forEach(c=>{
+      const pal=palettes[c.role];if(!pal) return;
+      obj.color[c.role]={};
+      if(scaleSystem!=='m3'){obj.color[c.role].custom={};pal.custom.forEach((s,i)=>{obj.color[c.role].custom[names[i]]={$value:fmtVal(s.hex,s.L,s.C,s.H),$type:'color',...(s.isAnchor?{$description:`Brand anchor — ${s.hex}`}:{})};});}
+      if(scaleSystem!=='custom'){obj.color[c.role].m3={};pal.m3.forEach(s=>{obj.color[c.role].m3[`tone-${s.tone}`]={$value:fmtVal(s.hex,s.L,s.C,s.H),$type:'color',...(s.isAnchor?{$description:`Brand anchor — ${s.hex}`}:{})};});}
+      if(pal.surf){obj.color[c.role].surface={};pal.surf.forEach(s=>{obj.color[c.role].surface[`surf-${s.tone}`]={$value:fmtVal(s.hex,s.L,s.C,s.H),$type:'color',...(s.isAnchor?{$description:'neutral anchor'}:{})};});}
+    });
+    semTokens.forEach(tok=>{obj.semantic[tok.tok]={light:{$value:resHex(tok.role,tok.step),$type:'color'},dark:{$value:resHex(tok.dr||tok.role,tok.ds||tok.step),$type:'color'},$description:tok.name};});
+  } else {
+    colors.forEach(c=>{
+      const pal=palettes[c.role];if(!pal) return;
+      obj[c.role]={};
+      if(scaleSystem!=='m3'){obj[c.role].custom={};pal.custom.forEach((s,i)=>{obj[c.role].custom[names[i]]={value:fmtVal(s.hex,s.L,s.C,s.H)};});}
+      if(scaleSystem!=='custom'){obj[c.role].m3={};pal.m3.forEach(s=>{obj[c.role].m3[`tone-${s.tone}`]={value:fmtVal(s.hex,s.L,s.C,s.H)};});}
+      if(pal.surf){obj[c.role].surface={};pal.surf.forEach(s=>{obj[c.role].surface[`surf-${s.tone}`]={value:fmtVal(s.hex,s.L,s.C,s.H)};});}
+    });
+    obj.semantic={};semTokens.forEach(tok=>{obj.semantic[tok.tok]={light:{value:resHex(tok.role,tok.step)},dark:{value:resHex(tok.dr||tok.role,tok.ds||tok.step)}};});
+  }
+  document.getElementById('json-output').textContent=JSON.stringify(obj,null,2);
+}
+
+// ── Tooltip & Copy ─────────────────────────────────────
+function showTT(e,hex,L,C,H,tok,anchor){
+  const t=document.getElementById('tt');
+  document.getElementById('tt-hex').textContent=hex+(anchor?' ← brand':'');
+  document.getElementById('tt-hex').style.color=anchor?'var(--accent2)':'var(--text)';
+  document.getElementById('tt-lch').textContent=`lch(${L} ${C.toFixed(1)} ${H.toFixed(1)})`;
+  document.getElementById('tt-tok').textContent=`--color-${tok}`;
+  t.style.display='block';t.style.left=(e.clientX+14)+'px';t.style.top=(e.clientY-14)+'px';
+}
+function hideTT(){document.getElementById('tt').style.display='none';}
+
+function cpHex(hex){navigator.clipboard.writeText(hex).then(()=>toast(`⎘ ${hex}`));}
+function copyEl(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>toast('⎘ Copiado'));}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ── UI Helpers ─────────────────────────────────────────
+function setSeg(segId,btn){document.getElementById(segId).querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function setTF(f,btn){tokenFmt=f;document.querySelectorAll('#tab-tokens .fmt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTokens();saveState();}
+function setJF(f,btn){jsonFmt=f;document.querySelectorAll('#tab-json .fmt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderJson();saveState();}
+function switchTab(name,el){document.querySelectorAll('.panel').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(`tab-${name}`).classList.add('active');el.classList.add('active');}
+
+// ── Init ───────────────────────────────────────────────
+document.getElementById('steps-slider').addEventListener('input',function(){document.getElementById('steps-val').textContent=this.value;debouncedGenerate();});
+document.getElementById('chroma-slider').addEventListener('input',function(){document.getElementById('chroma-val').textContent=parseFloat(this.value).toFixed(2);debouncedGenerate();});
+document.getElementById('naming-select').addEventListener('change',generateAll);
+document.getElementById('format-select').addEventListener('change',()=>{renderTokens();renderJson();saveState();});
+
+loadState();
+renderSidebar();
+generateAll();
+</script>
+</body>
+</html>
